@@ -1,0 +1,387 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AI QGen</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 700px;
+        margin: auto;
+      }
+      label { display: block; margin-top: 15px; }
+      select, input { padding: 6px; width: 100%; }
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        cursor: pointer;
+      }
+      #chapter-container { display: block; }
+    </style>
+  </head>
+
+  <body>
+    <h2>AI Question Generator</h2>
+
+    <!-- CURRICULUM -->
+    <label>
+      Curriculum
+      <select id="curriculum">
+        <option value="GCSE" selected>GCSE</option>
+        <option value="ALEVEL">A-Level</option>
+      </select>
+    </label>
+
+    <!-- CHAPTER (GCSE Only) -->
+    <div id="chapter-container">
+      <label>
+        Chapter Number
+        <select id="chapter">
+          <option value="1">Chapter 1</option>
+          <option value="2">Chapter 2</option>
+          <option value="3">Chapter 3</option>
+          <option value="4">Chapter 4</option>
+          <option value="5">Chapter 5</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- TOPIC -->
+    <label>
+    Topic
+    <select id="topic">
+      <option value="">-- select chapter first --</option>
+    </select>
+    </label> 
+
+    <!-- TOPIC
+    <label> 
+    Topic 
+    <input id="topic" type="text" placeholder="Order of Operation">
+    </label> -->
+
+    <!-- DIFFICULTY -->
+    <label>
+      Difficulty
+      <select id="difficulty">
+        <option value="Easy">Easy</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+    </label>
+
+    <!-- NUMBER OF QUESTIONS -->
+    <label>
+      Number of questions (1–40)
+      <input id="num" type="number" value="5" min="1" max="40">
+    </label>
+
+    <button id="btn">Generate</button>
+
+    <h2>Result</h2>
+    <div id="resultArea">
+      <pre id="result"></pre>
+    </div>
+
+    <script>
+
+  (function() {
+    // helpers & DOM refs
+    const curriculum = document.getElementById('curriculum');
+    const chapterBox = document.getElementById('chapter-container');
+    const chapterSelect = document.getElementById('chapter');
+    const topicSelect = document.getElementById('topic');
+    const btn = document.getElementById('btn');
+
+    // default GCSE chapters
+    const defaultGcseChapters = [
+      { value: "1", text: "Chapter 1" },
+      { value: "2", text: "Chapter 2" },
+      { value: "3", text: "Chapter 3" },
+      { value: "4", text: "Chapter 4" },
+      { value: "5", text: "Chapter 5" }
+    ];
+
+    // safe fetch helper with timeout
+    async function fetchWithTimeout(url, opts = {}, timeout = 7000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      opts.signal = controller.signal;
+      try {
+        const res = await fetch(url, opts);
+        clearTimeout(id);
+        return res;
+      } catch (err) {
+        clearTimeout(id);
+        throw err;
+      }
+    }
+
+    // Reset topic dropdown to initial placeholder
+    function resetTopicDropdown() {
+      if (!topicSelect) return;
+      topicSelect.innerHTML = '<option value="">-- select chapter first --</option>';
+    }
+
+    // Set chapter label text helper
+    const chapterLabelElem = document.querySelector('#chapter-container label');
+    function setChapterLabelText(text) {
+      if (!chapterLabelElem) return;
+      const first = chapterLabelElem.childNodes[0];
+      if (first && first.nodeType === Node.TEXT_NODE) {
+        first.nodeValue = text + " ";
+      } else {
+        chapterLabelElem.insertBefore(document.createTextNode(text + " "), chapterLabelElem.firstChild);
+      }
+    }
+
+    /* -----------------------
+      GCSE topic loader
+      endpoint: /topics?curriculum=GCSE&chapter_num=#
+      -----------------------*/
+    async function populateTopicsGCSE(chapterNum) {
+      if (!topicSelect) return;
+      topicSelect.innerHTML = '<option value="">Loading...</option>';
+      try {
+        const res = await fetchWithTimeout(`/topics?curriculum=GCSE&chapter_num=${encodeURIComponent(chapterNum)}`, {}, 6000);
+        if (!res.ok) {
+          console.error("Topic endpoint error:", res.status);
+          topicSelect.innerHTML = '<option value="">(no topics)</option>';
+          return;
+        }
+        const payload = await res.json();
+        const topics = payload.topics || [];
+        
+        const seen = new Set();
+        const clean = [];
+        for (let t of topics) {
+          if (t === null || typeof t === 'undefined') continue;
+          t = String(t).trim();
+          if (!t) continue;
+          if (t.toLowerCase() === 'nan') continue;
+          if (seen.has(t)) continue;
+          seen.add(t);
+          clean.push(t);
+        }
+        if (clean.length === 0) {
+          topicSelect.innerHTML = '<option value="">(no topics)</option>';
+          return;
+        }
+        let html = '<option value="">-- choose topic --</option>';
+        for (const t of clean) {
+          const safeVal = t.replace(/"/g, '&quot;');
+          html += `<option value="${safeVal}">${t}</option>`;
+        }
+        topicSelect.innerHTML = html;
+      } catch (err) {
+        console.error("populateTopicsGCSE failed:", err);
+        topicSelect.innerHTML = '<option value="">Error loading topics</option>';
+      }
+    }
+
+    /* -----------------------
+      A-Level topic loader
+      endpoint: /topics?curriculum=ALEVEL&chapter_name=Name
+      -----------------------*/
+    async function populateTopicsALEVEL(chapterName) {
+      if (!topicSelect) return;
+      topicSelect.innerHTML = '<option value="">Loading...</option>';
+      try {
+        const res = await fetchWithTimeout(`/topics?curriculum=ALEVEL&chapter_name=${encodeURIComponent(chapterName)}`, {}, 6000);
+        if (!res.ok) {
+          console.error("A-Level topic endpoint error:", res.status);
+          topicSelect.innerHTML = '<option value="">(no topics)</option>';
+          return;
+        }
+        const payload = await res.json();
+        const topics = payload.topics || [];
+        if (topics.length === 0) {
+          topicSelect.innerHTML = '<option value="">(no topics)</option>';
+          return;
+        }
+        let html = '<option value="">-- choose topic --</option>';
+        for (const t of topics) {
+          const safeVal = String(t).replace(/"/g, '&quot;');
+          html += `<option value="${safeVal}">${t}</option>`;
+        }
+        topicSelect.innerHTML = html;
+      } catch (err) {
+        console.error("populateTopicsALEVEL failed:", err);
+        topicSelect.innerHTML = '<option value="">Error loading topics</option>';
+      }
+    }
+
+    /* -----------------------
+      Populate GCSE chapters (numeric), attach handler once
+      -----------------------*/
+    function populateGcseChapters() {
+      if (!chapterSelect) return;
+
+      // Reset topics before changing chapters
+      resetTopicDropdown();
+
+      // restore numeric list
+      let html = '';
+      for (const item of defaultGcseChapters) {
+        html += `<option value="${item.value}">${item.text}</option>`;
+      }
+      chapterSelect.innerHTML = html;
+      setChapterLabelText('Chapter Number');
+
+      chapterSelect.onchange = null;
+      chapterSelect.addEventListener('change', (ev) => {
+        const ch = parseInt(ev.target.value || '1', 10);
+        // reset then load for GCSE
+        resetTopicDropdown();
+        populateTopicsGCSE(ch);
+      });
+
+      // load initial topics for selected numeric chapter
+      const selected = parseInt(chapterSelect.value || defaultGcseChapters[0].value, 10);
+      resetTopicDropdown();
+      populateTopicsGCSE(selected);
+    }
+
+    /* -----------------------
+      Populate A-Level chapters (names) and topics
+      Uses backend: GET /topics?curriculum=ALEVEL  -> returns { chapters: [...] }
+      -----------------------*/
+    async function populateAlevelChaptersFromJson() {
+      if (!chapterSelect) return;
+
+      // Reset topics first
+      resetTopicDropdown();
+
+      chapterSelect.innerHTML = '<option value="">Loading...</option>';
+      try {
+        // backend returns { chapters: [...] } when no chapter_name provided for ALEVEL
+        const res = await fetchWithTimeout('/topics?curriculum=ALEVEL', {}, 6000);
+        if (!res.ok) {
+          console.error('Failed to load A-level chapters', res.status);
+          chapterSelect.innerHTML = '<option value="">(failed to load)</option>';
+          return;
+        }
+        const data = await res.json();
+        // backend uses "chapters" key for A-Level list
+        const chapters = data.chapters || [];
+        if (chapters.length === 0) {
+          chapterSelect.innerHTML = '<option value="">(no chapters)</option>';
+          return;
+        }
+
+        // Build chapter name options
+        let html = '<option value="">-- choose chapter --</option>';
+        for (const name of chapters) {
+          const safeVal = String(name).replaceAll('"', '&quot;');
+          html += `<option value="${safeVal}">${name}</option>`;
+        }
+        chapterSelect.innerHTML = html;
+        setChapterLabelText('Chapter Name');
+
+        // remove any old listener and attach a single one
+        chapterSelect.onchange = null;
+        chapterSelect.addEventListener('change', (e) => {
+          const chapterName = e.target.value;
+          resetTopicDropdown();
+          if (chapterName) populateTopicsALEVEL(chapterName);
+        });
+
+        // select first chapter by default and load its topics
+        chapterSelect.value = chapters[0];
+        resetTopicDropdown();
+        populateTopicsALEVEL(chapters[0]);
+
+      } catch (err) {
+        console.error('populateAlevelChaptersFromJson error:', err);
+        chapterSelect.innerHTML = '<option value="">(error)</option>';
+      }
+    }
+
+    /* -----------------------
+      Curriculum change handler (clear state then load)
+      -----------------------*/
+    curriculum.addEventListener('change', async () => {
+    
+      resetTopicDropdown();
+
+      // show chapter selector area
+      chapterBox.style.display = 'block';
+
+      if (curriculum.value === 'GCSE') {
+        populateGcseChapters();
+      } else {
+        await populateAlevelChaptersFromJson();
+      }
+    });
+
+    /* -----------------------
+      Initial UI setup on page load
+      -----------------------*/
+    (function initCurriculumUI() {
+      // reset topic then populate depending on initial curriculum
+      resetTopicDropdown();
+      if (curriculum.value === 'GCSE') {
+        populateGcseChapters();
+      } else {
+        populateAlevelChaptersFromJson();
+      }
+    })();
+
+    /* -----------------------
+      Generate button — build request the same way you had before
+      -----------------------*/
+    btn.addEventListener('click', async () => {
+      const curr = curriculum.value;
+      const topic = document.getElementById('topic').value;
+      const difficulty = document.getElementById('difficulty').value;
+      const num = parseInt(document.getElementById('num').value || '5');
+
+      let body = {
+        curriculum: curr,
+        topic,
+        difficulty,
+        num_questions: num
+      };
+
+      if (curr === "GCSE") {
+        body.chapter_num = parseInt(document.getElementById('chapter').value);
+      } else {
+        body.chapter_name = document.getElementById('chapter').value;
+      }
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+
+        // download link (same behavior as before)
+        const resultArea = document.getElementById('resultArea');
+        const oldLink = document.getElementById('download-link');
+        if (oldLink) oldLink.remove();
+
+        if (data && data.output_file) {
+          const downloadLink = document.createElement('a');
+          downloadLink.id = 'download-link';
+          downloadLink.href = data.output_file;
+          downloadLink.download = data.output_file.split('/').pop();
+          downloadLink.textContent = "Download Markdown Excel";
+          downloadLink.style.display = 'block';
+          downloadLink.style.marginTop = '10px';
+          resultArea.appendChild(downloadLink);
+        }
+      } catch (err) {
+        console.error("Error generating questions:", err);
+        document.getElementById('result').textContent = "Error generating questions.";
+      }
+    });
+
+  })();
+  </script>
+  </body>
+</html>
