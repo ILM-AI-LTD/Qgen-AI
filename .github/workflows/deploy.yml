@@ -12,6 +12,10 @@ env:
   ECR_REPOSITORY: qgen-ai
   S3_BUCKET: ilm-qgen-ai-s3
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     name: Build and Deploy
@@ -21,11 +25,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::013419929011:role/GitHubActions-ElasticBeanstalk-OIDC
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -91,6 +104,14 @@ jobs:
           if [ "$ENV_HEALTH" != "Ok" ]; then
             echo "⚠️ Warning: Environment health is $ENV_HEALTH"
           fi
-          
 
-      
+      # - name: Notify Slack via Script
+      #   if: always()
+      #   continue-on-error: true
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #     EB_APP_NAME: ${{ env.EB_APP_NAME }}
+      #     EB_ENV_NAME: ${{ env.EB_ENV_NAME }}
+      #   run: |
+      #     chmod +x scripts/notify-slack.sh
+      #     ./scripts/notify-slack.sh "${{ job.status }}"
