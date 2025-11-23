@@ -1,0 +1,96 @@
+name: Deploy to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  AWS_REGION: eu-west-2
+  EB_APP_NAME: qgen-ai
+  EB_ENV_NAME: qgen-ai
+  ECR_REPOSITORY: qgen-ai
+  S3_BUCKET: ilm-qgen-ai-s3
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "IMAGE_TAG=$TIMESTAMP" >> $GITHUB_ENV
+          docker build -t ${{ env.ECR_REPOSITORY }}:$TIMESTAMP .
+          docker tag ${{ env.ECR_REPOSITORY }}:$TIMESTAMP ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$TIMESTAMP
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$TIMESTAMP
+
+      - name: Generate Dockerrun.aws.json
+        run: |
+          echo "ARTIFACT_KEY=qgen-ai/deployments/Dockerrun-${IMAGE_TAG}.json" >> $GITHUB_ENV
+          echo '{
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              "Name": "'"${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"'",
+              "Update": "true"
+            },
+            "Ports": [
+              {
+                "ContainerPort": 5000
+              }
+            ],
+            "Logging": "/var/log/app"
+          }' > Dockerrun.aws.json
+
+      - name: Upload Dockerrun.aws.json to S3
+        run: |
+          aws s3 cp Dockerrun.aws.json s3://${{ env.S3_BUCKET }}/$ARTIFACT_KEY
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APP_NAME }} \
+            --version-label "ver-${IMAGE_TAG}" \
+            --source-bundle S3Bucket=${{ env.S3_BUCKET }},S3Key=$ARTIFACT_KEY
+
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --version-label "ver-${IMAGE_TAG}"
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          aws elasticbeanstalk wait environment-updated \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --no-paginate || echo "Deployment monitoring timed out, check AWS console."
+
+      - name: Verify deployment health
+        if: success()
+        run: |
+          ENV_HEALTH=$(aws elasticbeanstalk describe-environment-health \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --attribute-names HealthStatus \
+            --query 'HealthStatus' \
+            --output text)
+          echo "Environment health: $ENV_HEALTH"
+          if [ "$ENV_HEALTH" != "Ok" ]; then
+            echo "⚠️ Warning: Environment health is $ENV_HEALTH"
+          fi
+          
+
+      

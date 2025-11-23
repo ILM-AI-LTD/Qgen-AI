@@ -21,13 +21,11 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# allow importing from utils if needed
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../utils'))
-sys.path.append(r"D:\Work\Question generator AI\ai-qgen\utils")
-from fewshot import get_fewshot_examples, get_fewshot_examples_alevel
-from prompt_builder import build_generation_prompt
-from llm_engine import generate_with_gpt
-from markdown_builder import generate_markdown, save_markdown_as_excel
+# Import from utils directory
+from utils.fewshot import get_fewshot_examples, get_fewshot_examples_alevel
+from utils.prompt_builder import build_generation_prompt
+from utils.llm_engine import generate_with_gpt
+from utils.markdown_builder import generate_markdown, save_markdown_as_excel
 
 # Ensure folders exist
 Path("curated_excels").mkdir(parents=True, exist_ok=True)
