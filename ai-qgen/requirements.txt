@@ -4,3 +4,5 @@ pandas
 openpyxl
 python-dotenv
 requests
+openai
+fewshot
