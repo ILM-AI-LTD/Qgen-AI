@@ -14,9 +14,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-# Install gunicorn for production
-RUN pip install --prefix=/install --no-cache-dir gunicorn
-
 # === Stage 2: Final slim image ===
 FROM python:3.11-slim
 
@@ -39,7 +36,6 @@ RUN mkdir -p curated_excels outputs frontend static_data utils
 # Expose port
 EXPOSE 5000
 
-# Run the app with Uvicorn (FastAPI's recommended server)
-# Using 2 workers with 2 threads for better performance
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "2"]
+# Run the app with Uvicorn with extended timeout for long-running requests
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "2", "--timeout-keep-alive", "600"]
 
