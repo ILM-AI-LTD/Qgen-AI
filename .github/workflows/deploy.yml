@@ -53,9 +53,9 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:$TIMESTAMP ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$TIMESTAMP
           docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$TIMESTAMP
 
-      - name: Generate Dockerrun.aws.json
+      - name: Generate Dockerrun.aws.json and create deployment bundle
         run: |
-          echo "ARTIFACT_KEY=qgen-ai/deployments/Dockerrun-${IMAGE_TAG}.json" >> $GITHUB_ENV
+          echo "ARTIFACT_KEY=qgen-ai/deployments/app-${IMAGE_TAG}.zip" >> $GITHUB_ENV
           echo '{
             "AWSEBDockerrunVersion": "1",
             "Image": {
@@ -69,10 +69,13 @@ jobs:
             ],
             "Logging": "/var/log/app"
           }' > Dockerrun.aws.json
+          
+          # Create deployment bundle with .ebextensions
+          zip -r deployment.zip Dockerrun.aws.json .ebextensions
 
-      - name: Upload Dockerrun.aws.json to S3
+      - name: Upload deployment bundle to S3
         run: |
-          aws s3 cp Dockerrun.aws.json s3://${{ env.S3_BUCKET }}/$ARTIFACT_KEY
+          aws s3 cp deployment.zip s3://${{ env.S3_BUCKET }}/$ARTIFACT_KEY
 
       - name: Deploy to Elastic Beanstalk
         run: |
