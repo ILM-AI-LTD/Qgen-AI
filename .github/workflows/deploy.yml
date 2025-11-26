@@ -70,8 +70,8 @@ jobs:
             "Logging": "/var/log/app"
           }' > Dockerrun.aws.json
           
-          # Create deployment bundle with .ebextensions
-          zip -r deployment.zip Dockerrun.aws.json .ebextensions
+          # Create deployment bundle with .ebextensions and .platform
+          zip -r deployment.zip Dockerrun.aws.json .ebextensions .platform
 
       - name: Upload deployment bundle to S3
         run: |
