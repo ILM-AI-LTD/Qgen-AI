@@ -1,0 +1,73 @@
+{
+    "Life Cycle of Stars": {
+        "topics": [
+            "Solar System & Orbits & Planets",
+            "Red Shift & Big Bang",
+            "Lifecycle of a Star"
+        ],
+        "question_types": [
+            "Short Q/A",
+            "Mathematical",
+            "F/B",
+            "MCQ"
+        ]
+    },
+    "Magnetsim & Electromagnetism": {
+        "topics": [
+            "Transformers",
+            "Motors",
+            "Electromagnetism",
+            "Permanent & Induced Magnets"
+        ],
+        "question_types": [
+            "MCQ",
+            "Mathematical",
+            "Short Q/A",
+            "F/B"
+        ]
+    },
+    "Wave": {
+        "topics": [
+            "Refraction",
+            "Light",
+            "Radio Wave",
+            "Sound Waves",
+            "Use of EM waves",
+            "Electromagnetic Waves",
+            "Transverse & Longitudianl wave",
+            "Transverse & Longitudinal wave"
+        ],
+        "question_types": [
+            "MCQ",
+            "Mathematical",
+            "Short Q/A",
+            "F/B"
+        ]
+    },
+    "Work, Force & Energy": {
+        "topics": [
+            "Momentum",
+            "Stopping Distances &Reaction Time",
+            "Work Done",
+            "Fluid Pressure",
+            "Contact &Non-Contact Forces",
+            "Upthrust &Atmospheric Pressure",
+            "Newton's 3rd Law",
+            "Weight,Mass,Graity",
+            "Investigating Springs",
+            "Forces &Elasticity",
+            "Calculating Forces",
+            "Acceleration",
+            "Distance, Displacements, Speed &Velocity"
+        ],
+        "question_types": [
+            "Mathematical",
+            "Descriptive",
+            "Short Q/A",
+            "F/B",
+            "MCQ",
+            "Decriptive",
+            "P"
+        ]
+    }
+}

@@ -24,6 +24,16 @@
   <body>
     <h2>AI Question Generator</h2>
 
+  <!-- Subject -->
+  <label>
+    Subject
+    <select id="subject">
+      <option value="Math">Math</option>
+      <option value="Physics">Physics</option>
+      <option value="Chemistry">Chemistry</option>
+    </select>
+  </label>
+
     <!-- CURRICULUM -->
     <label>
       Curriculum
@@ -55,12 +65,6 @@
     </select>
     </label> 
 
-    <!-- TOPIC
-    <label> 
-    Topic 
-    <input id="topic" type="text" placeholder="Order of Operation">
-    </label> -->
-
     <!-- DIFFICULTY -->
     <label>
       Difficulty
@@ -84,17 +88,17 @@
       <pre id="result"></pre>
     </div>
 
-    <script>
-
+  <script>
   (function() {
-    // helpers & DOM refs
+    // DOM references
+    const subjectSelect = document.getElementById('subject');
     const curriculum = document.getElementById('curriculum');
     const chapterBox = document.getElementById('chapter-container');
     const chapterSelect = document.getElementById('chapter');
     const topicSelect = document.getElementById('topic');
     const btn = document.getElementById('btn');
+    const resultArea = document.getElementById('resultArea');
 
-    // default GCSE chapters
     const defaultGcseChapters = [
       { value: "1", text: "Chapter 1" },
       { value: "2", text: "Chapter 2" },
@@ -103,8 +107,8 @@
       { value: "5", text: "Chapter 5" }
     ];
 
-    // safe fetch helper with timeout
-    async function fetchWithTimeout(url, opts = {}, timeout = 7000) {
+    // Safe fetch helper with timeout
+    async function fetchWithTimeout(url, opts = {}, timeout = 8000) {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       opts.signal = controller.signal;
@@ -118,7 +122,6 @@
       }
     }
 
-    // Reset topic dropdown to initial placeholder
     function resetTopicDropdown() {
       if (!topicSelect) return;
       topicSelect.innerHTML = '<option value="">-- select chapter first --</option>';
@@ -136,43 +139,24 @@
       }
     }
 
-    /* -----------------------
-      GCSE topic loader
-      endpoint: /topics?curriculum=GCSE&chapter_num=#
-      -----------------------*/
+    /* ---------- Math handlers ---------- */
     async function populateTopicsGCSE(chapterNum) {
       if (!topicSelect) return;
       topicSelect.innerHTML = '<option value="">Loading...</option>';
       try {
-        const res = await fetchWithTimeout(`/topics?curriculum=GCSE&chapter_num=${encodeURIComponent(chapterNum)}`, {}, 6000);
-        if (!res.ok) {
-          console.error("Topic endpoint error:", res.status);
-          topicSelect.innerHTML = '<option value="">(no topics)</option>';
-          return;
-        }
+        const res = await fetchWithTimeout(`/math_topics?curriculum=GCSE&chapter_num=${encodeURIComponent(chapterNum)}`, {}, 6000);
+        if (!res.ok) { topicSelect.innerHTML = '<option value="">(no topics)</option>'; return; }
         const payload = await res.json();
         const topics = payload.topics || [];
-        
-        const seen = new Set();
-        const clean = [];
+        const seen = new Set(); const clean = [];
         for (let t of topics) {
           if (t === null || typeof t === 'undefined') continue;
-          t = String(t).trim();
-          if (!t) continue;
-          if (t.toLowerCase() === 'nan') continue;
-          if (seen.has(t)) continue;
-          seen.add(t);
-          clean.push(t);
+          t = String(t).trim(); if (!t) continue; if (t.toLowerCase() === 'nan') continue;
+          if (seen.has(t)) continue; seen.add(t); clean.push(t);
         }
-        if (clean.length === 0) {
-          topicSelect.innerHTML = '<option value="">(no topics)</option>';
-          return;
-        }
+        if (clean.length === 0) { topicSelect.innerHTML = '<option value="">(no topics)</option>'; return; }
         let html = '<option value="">-- choose topic --</option>';
-        for (const t of clean) {
-          const safeVal = t.replace(/"/g, '&quot;');
-          html += `<option value="${safeVal}">${t}</option>`;
-        }
+        for (const t of clean) html += `<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`;
         topicSelect.innerHTML = html;
       } catch (err) {
         console.error("populateTopicsGCSE failed:", err);
@@ -180,7 +164,7 @@
       }
     }
 
-    /* -----------------------
+        /* -----------------------
       A-Level topic loader
       endpoint: /topics?curriculum=ALEVEL&chapter_name=Name
       -----------------------*/
@@ -188,7 +172,7 @@
       if (!topicSelect) return;
       topicSelect.innerHTML = '<option value="">Loading...</option>';
       try {
-        const res = await fetchWithTimeout(`/topics?curriculum=ALEVEL&chapter_name=${encodeURIComponent(chapterName)}`, {}, 6000);
+        const res = await fetchWithTimeout(`/math_topics?curriculum=ALEVEL&chapter_name=${encodeURIComponent(chapterName)}`, {}, 6000);
         if (!res.ok) {
           console.error("A-Level topic endpoint error:", res.status);
           topicSelect.innerHTML = '<option value="">(no topics)</option>';
@@ -212,14 +196,13 @@
       }
     }
 
-    /* -----------------------
-      Populate GCSE chapters (numeric), attach handler once
-      -----------------------*/
     function populateGcseChapters() {
       if (!chapterSelect) return;
 
-      // Reset topics before changing chapters
+      // reset topics and any question_type UI
       resetTopicDropdown();
+      const oldQt = document.getElementById('question_type');
+      if (oldQt) oldQt.closest('label')?.remove();
 
       // restore numeric list
       let html = '';
@@ -229,68 +212,50 @@
       chapterSelect.innerHTML = html;
       setChapterLabelText('Chapter Number');
 
-      chapterSelect.onchange = null;
-      chapterSelect.addEventListener('change', (ev) => {
+      chapterSelect.onchange = (ev) => {
         const ch = parseInt(ev.target.value || '1', 10);
-        // reset then load for GCSE
+        // clear topics then load for GCSE
         resetTopicDropdown();
-        populateTopicsGCSE(ch);
-      });
+        if (!isNaN(ch)) populateTopicsGCSE(ch);
+      };
 
-      // load initial topics for selected numeric chapter
+      // load topics for currently selected chapter
       const selected = parseInt(chapterSelect.value || defaultGcseChapters[0].value, 10);
       resetTopicDropdown();
-      populateTopicsGCSE(selected);
+      if (!isNaN(selected)) populateTopicsGCSE(selected);
     }
 
-    /* -----------------------
-      Populate A-Level chapters (names) and topics
-      Uses backend: GET /topics?curriculum=ALEVEL  -> returns { chapters: [...] }
-      -----------------------*/
-    async function populateAlevelChaptersFromJson() {
+    async function populateAlevelChapters() {
       if (!chapterSelect) return;
 
-      // Reset topics first
+      // clear prior UI
       resetTopicDropdown();
+      const oldQt = document.getElementById('question_type');
+      if (oldQt) oldQt.closest('label')?.remove();
 
       chapterSelect.innerHTML = '<option value="">Loading...</option>';
       try {
-        // backend returns { chapters: [...] } when no chapter_name provided for ALEVEL
-        const res = await fetchWithTimeout('/topics?curriculum=ALEVEL', {}, 6000);
-        if (!res.ok) {
-          console.error('Failed to load A-level chapters', res.status);
-          chapterSelect.innerHTML = '<option value="">(failed to load)</option>';
-          return;
-        }
+        const res = await fetchWithTimeout('/math_topics?curriculum=ALEVEL', {}, 6000);
+        if (!res.ok) { chapterSelect.innerHTML = '<option value="">(failed to load)</option>'; return; }
         const data = await res.json();
-        // backend uses "chapters" key for A-Level list
         const chapters = data.chapters || [];
-        if (chapters.length === 0) {
-          chapterSelect.innerHTML = '<option value="">(no chapters)</option>';
-          return;
-        }
+        if (chapters.length === 0) { chapterSelect.innerHTML = '<option value="">(no chapters)</option>'; return; }
 
-        // Build chapter name options
         let html = '<option value="">-- choose chapter --</option>';
-        for (const name of chapters) {
-          const safeVal = String(name).replaceAll('"', '&quot;');
-          html += `<option value="${safeVal}">${name}</option>`;
-        }
+        for (const name of chapters) html += `<option value="${name.replace(/"/g,'&quot;')}">${name}</option>`;
         chapterSelect.innerHTML = html;
         setChapterLabelText('Chapter Name');
 
-        // remove any old listener and attach a single one
-        chapterSelect.onchange = null;
-        chapterSelect.addEventListener('change', (e) => {
+        chapterSelect.onchange = (e) => {
           const chapterName = e.target.value;
           resetTopicDropdown();
           if (chapterName) populateTopicsALEVEL(chapterName);
-        });
+        };
 
-        // select first chapter by default and load its topics
+        // set first chapter and explicitly call the loader
         chapterSelect.value = chapters[0];
         resetTopicDropdown();
-        populateTopicsALEVEL(chapters[0]);
+        if (chapters[0]) populateTopicsALEVEL(chapters[0]);
 
       } catch (err) {
         console.error('populateAlevelChaptersFromJson error:', err);
@@ -298,74 +263,148 @@
       }
     }
 
-    /* -----------------------
-      Curriculum change handler (clear state then load)
-      -----------------------*/
-    curriculum.addEventListener('change', async () => {
-    
-      resetTopicDropdown();
+    async function populateScienceChapters(subject) {
+      if (!chapterSelect) return;
 
-      // show chapter selector area
+      // reset
+      resetTopicDropdown();
+      const oldQt = document.getElementById('question_type');
+      if (oldQt) oldQt.closest('label')?.remove();
+
+      chapterSelect.innerHTML = '<option value="">Loading...</option>';
+      try {
+        const res = await fetchWithTimeout(`/science_chapters?subject=${encodeURIComponent(subject)}&curriculum=GCSE`, {}, 6000);
+        if (!res.ok) { chapterSelect.innerHTML = '<option value="">(failed)</option>'; return; }
+        const data = await res.json();
+        const chapters = data.chapters || [];
+        if (!chapters.length) { chapterSelect.innerHTML = '<option value="">(no chapters)</option>'; return; }
+
+        let html = '<option value="">-- choose chapter --</option>';
+        for (const ch of chapters) html += `<option value="${ch.replace(/"/g,'&quot;')}">${ch}</option>`;
+        chapterSelect.innerHTML = html;
+        setChapterLabelText('Chapter Name');
+
+        chapterSelect.onchange = (ev) => {
+          const ch = ev.target.value;
+          resetTopicDropdown();
+          if (!ch) return;
+          populateScienceTopics(subject, ch);
+        };
+
+        // select first chapter and explicitly load topics
+        chapterSelect.value = chapters[0];
+        resetTopicDropdown();
+        if (chapters[0]) populateScienceTopics(subject, chapters[0]);
+
+      } catch (err) {
+        console.error("populateScienceChapters failed:", err);
+        chapterSelect.innerHTML = '<option value="">(error)</option>';
+      }
+    }
+
+    async function populateScienceTopics(subject, chapterName) {
+      topicSelect.innerHTML = '<option value="">Loading...</option>';
+      try {
+        const res = await fetchWithTimeout(`/science_topics?subject=${encodeURIComponent(subject)}&curriculum=GCSE&chapter=${encodeURIComponent(chapterName)}`, {}, 6000);
+        if (!res.ok) { topicSelect.innerHTML = '<option value="">(no topics)</option>'; return; }
+        const data = await res.json();
+        const topics = data.topics || [];
+        const qtypes = data.question_types || [];
+
+        // Topics
+        if (!topics.length) topicSelect.innerHTML = '<option value="">(no topics)</option>';
+        else {
+          let html = '<option value="">-- choose topic --</option>';
+          for (const t of topics) html += `<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`;
+          topicSelect.innerHTML = html;
+        }
+
+        // Question types
+        const oldQt = document.getElementById('question_type');
+        if (oldQt) oldQt.closest('label')?.remove();
+        if (qtypes.length) {
+          const label = document.createElement('label');
+          label.innerText = 'Question Type';
+          const select = document.createElement('select');
+          select.id = 'question_type';
+          let qtHtml = '<option value="">-- choose question type --</option>';
+          for (const qt of qtypes) qtHtml += `<option value="${qt}">${qt}</option>`;
+          select.innerHTML = qtHtml;
+          label.appendChild(select);
+          topicSelect.parentNode.insertAdjacentElement('afterend', label);
+        }
+
+      } catch (err) {
+        console.error("populateScienceTopics failed:", err);
+        topicSelect.innerHTML = '<option value="">Error loading topics</option>';
+      }
+    }
+
+    /* ---------- Central UI handler ---------- */
+    async function applyUiForSelection() {
+      resetTopicDropdown();
+      const oldQt = document.getElementById('question_type');
+      if (oldQt) oldQt.closest('label')?.remove();
+
+      const subj = subjectSelect?.value || 'Math';
+      const curr = curriculum?.value || 'GCSE';
       chapterBox.style.display = 'block';
 
-      if (curriculum.value === 'GCSE') {
-        populateGcseChapters();
-      } else {
-        await populateAlevelChaptersFromJson();
+      if (subj === 'Math') {
+        if (curr === 'GCSE') populateGcseChapters();
+        else await populateAlevelChapters();
+        return;
       }
-    });
 
-    /* -----------------------
-      Initial UI setup on page load
-      -----------------------*/
-    (function initCurriculumUI() {
-      // reset topic then populate depending on initial curriculum
-      resetTopicDropdown();
-      if (curriculum.value === 'GCSE') {
-        populateGcseChapters();
-      } else {
-        populateAlevelChaptersFromJson();
+      if (subj === 'Physics' || subj === 'Chemistry') {
+        if (curr === 'GCSE') await populateScienceChapters(subj);
+        else {
+          chapterSelect.innerHTML = '<option value="">(A-Level coming soon)</option>';
+          setChapterLabelText('Chapter Name');
+          resetTopicDropdown();
+        }
+        return;
       }
-    })();
 
-    /* -----------------------
-      Generate button — build request the same way you had before
-      -----------------------*/
+      // Fallback
+      await populateGcseChapters();
+    }
+
+    curriculum.addEventListener('change', applyUiForSelection);
+    subjectSelect.addEventListener('change', applyUiForSelection);
+
+    (function init() { resetTopicDropdown(); applyUiForSelection(); })();
+
+    /* ---------- Generate button ---------- */
     btn.addEventListener('click', async () => {
+      const subj = subjectSelect.value;
       const curr = curriculum.value;
-      const topic = document.getElementById('topic').value;
+      const topic = topicSelect?.value || "";
       const difficulty = document.getElementById('difficulty').value;
       const num = parseInt(document.getElementById('num').value || '5');
 
-      let body = {
-        curriculum: curr,
-        topic,
-        difficulty,
-        num_questions: num
-      };
+      const body = { subject: subj, curriculum: curr, topic, difficulty, num_questions: num };
 
-      if (curr === "GCSE") {
-        body.chapter_num = parseInt(document.getElementById('chapter').value);
+      if (subj === 'Math' && curr === 'GCSE') {
+        body.chapter_num = parseInt(chapterSelect.value);
       } else {
-        body.chapter_name = document.getElementById('chapter').value;
+        body.chapter_name = chapterSelect.value || "";
+        const qtEl = document.getElementById('question_type');
+        if (qtEl) body.question_type = qtEl.value || "";
       }
 
       try {
         const res = await fetch('/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {'Content-Type':'application/json'},
           body: JSON.stringify(body)
         });
-
         const data = await res.json();
         document.getElementById('result').textContent = JSON.stringify(data, null, 2);
 
-        // download link (same behavior as before)
-        const resultArea = document.getElementById('resultArea');
         const oldLink = document.getElementById('download-link');
         if (oldLink) oldLink.remove();
-
-        if (data && data.output_file) {
+        if (data?.output_file) {
           const downloadLink = document.createElement('a');
           downloadLink.id = 'download-link';
           downloadLink.href = data.output_file;
@@ -376,7 +415,7 @@
           resultArea.appendChild(downloadLink);
         }
       } catch (err) {
-        console.error("Error generating questions:", err);
+        console.error("Error generating:", err);
         document.getElementById('result').textContent = "Error generating questions.";
       }
     });
