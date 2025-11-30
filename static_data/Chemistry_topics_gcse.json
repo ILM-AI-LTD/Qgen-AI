@@ -1,0 +1,166 @@
+{
+    "Atomic Structure and Periodic Table": {
+        "topics": [
+            "Atom",
+            "Compounds",
+            "Electronic Structure",
+            "Elements",
+            "Group 0 Elements",
+            "Group 1 Elements",
+            "Group 7 Elements",
+            "Metals and Non-metals",
+            "Mixtures and chromatography",
+            "More Separation Techniques",
+            "The Modern Periodic Table"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Bonding, Structure and Properties of Matter": {
+        "topics": [
+            "Allotropes of Carbon",
+            "Changing State",
+            "Covalent Bonding",
+            "Formation of Ions",
+            "Ionic Bonding",
+            "Ionic Compounds",
+            "Metallic Bonding",
+            "Nanoparticles",
+            "Polymers and Giant Covalent Structures",
+            "Simple Molecular Substances",
+            "States of Matter",
+            "Uses of Nanoparticles"
+        ],
+        "question_types": [
+            "MCQ",
+            "One word ans",
+            "SAQ",
+            "one word answer"
+        ]
+    },
+    "Chemical analysis": {
+        "topics": [
+            " Flame Emission Spectroscopy",
+            "Paper Chromatography",
+            "Purity and Formulations",
+            "Tests for Cations",
+            "Tests for Gases and Anions"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Chemical changes": {
+        "topics": [
+            " Electrolysis",
+            " The Reactivity Series",
+            "Acids and Bases",
+            "Electrolysis of Aqueous Solutions",
+            "Reactions of Acids",
+            "Redox Reactions",
+            "Separating Metals From Metal Oxides",
+            "Strong Acids and Weak Acids",
+            "Titrations"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ",
+            "SAQ "
+        ]
+    },
+    "Chemistry of the atmosphere": {
+        "topics": [
+            "Air Pollution",
+            "Carbon Footprints",
+            "Greenhouse Gases and Climate Change",
+            "The Evolution of the Atmosphere"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Energy changes": {
+        "topics": [
+            "Bond Energies",
+            "Cells and Batteries",
+            "Exothermic and Endothermic Reactions",
+            "Fuel Cells",
+            "More Exothermic and Endothermic Reactions"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Organic chemistry": {
+        "topics": [
+            " Addition Polymers",
+            " Alcohols",
+            " Fractional Distillation",
+            "Alkenes",
+            "Carboxylic Acids",
+            "Condensation Polymers",
+            "Hydrocarbons",
+            "Naturally Occurring Polymers",
+            "Reactions of Alkenes",
+            "Uses and Cracking of Crude Oil"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Quantitative chemistry": {
+        "topics": [
+            " Atom Economy",
+            " Gases and Solutions",
+            " Percentage Yield",
+            "Concentration Calculations",
+            "Conservation of Mass",
+            "Limiting Reactants",
+            "Relative Formula Mass",
+            "The Mole",
+            "The Mole and Equations"
+        ],
+        "question_types": [
+            "SAQ"
+        ]
+    },
+    "The rate and extent of chemical change": {
+        "topics": [
+            " Le Chatelier’s Principle",
+            " Measuring Rates of Reaction",
+            "Factors Affecting Rates of Reaction",
+            "Finding Reaction Rates from Graphs",
+            "Rates of Reaction",
+            "Reversible Reactions",
+            "Two Rates Experiments"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    },
+    "Using resources": {
+        "topics": [
+            " Waste Water Treatment",
+            "Ceramics, Composites and Polymers",
+            "Corrosion",
+            "Finite and Renewable Resources",
+            "Life Cycle Assessments",
+            "NPK Fertilisers",
+            "Potable Water",
+            "Properties of Materials",
+            "Reuse and Recycling",
+            "The Haber Process"
+        ],
+        "question_types": [
+            "MCQ",
+            "SAQ"
+        ]
+    }
+}

@@ -6,7 +6,7 @@ load_dotenv()
 
 client = OpenAI()
 
-def generate_with_gpt(prompt):
+def generate_questions(prompt):
     """
     Calls GPT-5-mini and returns parsed JSON list.
     """
