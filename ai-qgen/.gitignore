@@ -1,0 +1,20 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+.env/
+
+# VS Code
+.vscode/
+.idea/
+
+# Generated outputs (you DON'T want in repo)
+outputs/
+
+# System
+.DS_Store
+Thumbs.db
+".env" 
