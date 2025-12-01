@@ -1,6 +1,7 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pandas
 openpyxl
 python-dotenv
 requests
+openai
