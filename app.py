@@ -123,10 +123,11 @@ def science_chapters(subject: str = Query(..., description="Physics|Chemistry"),
     Prefers static JSON file: static_data/{Subject}_topics_gcse.json or {subject}_topics_alevel.json
     """
     subject_clean = str(subject).strip()
+    subject_key = subject_clean.lower()  # file names are stored in lowercase
     if curriculum.upper() == "GCSE":
-        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_clean}_topics_gcse.json"
+        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_gcse.json"
     else:
-        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_clean}_topics_alevel.json"
+        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_alevel.json"
 
     if json_path.exists():
         try:
@@ -165,12 +166,13 @@ def science_topics(subject: str = Query(..., description="Physics|Chemistry"),
     Prefer static JSON: static_data/{Subject}_topics_gcse.json
     """
     subject_clean = str(subject).strip()
+    subject_key = subject_clean.lower()  # file names are stored in lowercase
     chapter_name = str(chapter).strip()
 
     if curriculum.upper() == "GCSE":
-        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_clean}_topics_gcse.json"
+        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_gcse.json"
     else:
-        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_clean}_topics_alevel.json"
+        json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_alevel.json"
 
     if json_path.exists():
         try:
