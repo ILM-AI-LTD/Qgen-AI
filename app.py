@@ -18,15 +18,19 @@ import re
 
 from dotenv import load_dotenv
 from openai import OpenAI
-
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Import from utils directory
-from utils.fewshot import get_fewshot_examples, get_fewshot_examples_alevel
-from utils.prompt_builder import build_generation_prompt
-from utils.llm_engine import generate_questions as llm_generate
-from utils.markdown_builder import generate_markdown, save_markdown_as_excel
+# allow importing from utils if needed
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils'))
+
+from prompt_builder import build_generation_prompt
+from llm_engine import generate_questions as llm_generate
+from markdown_builder import generate_markdown, save_markdown_as_excel
+from fewshot import (
+    get_fewshot_examples,
+    get_fewshot_examples_alevel,
+    get_fewshot_examples_science
+)
 
 # Ensure folders exist
 Path("curated_excels").mkdir(parents=True, exist_ok=True)
@@ -123,7 +127,7 @@ def science_chapters(subject: str = Query(..., description="Physics|Chemistry"),
     Prefers static JSON file: static_data/{Subject}_topics_gcse.json or {subject}_topics_alevel.json
     """
     subject_clean = str(subject).strip()
-    subject_key = subject_clean.lower()  # file names are stored in lowercase
+    subject_key = subject_clean.lower()
     if curriculum.upper() == "GCSE":
         json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_gcse.json"
     else:
@@ -166,9 +170,8 @@ def science_topics(subject: str = Query(..., description="Physics|Chemistry"),
     Prefer static JSON: static_data/{Subject}_topics_gcse.json
     """
     subject_clean = str(subject).strip()
-    subject_key = subject_clean.lower()  # file names are stored in lowercase
     chapter_name = str(chapter).strip()
-
+    subject_key = subject_clean.lower()
     if curriculum.upper() == "GCSE":
         json_path = SCIENCE_TOPICS_GCSE_DIR / f"{subject_key}_topics_gcse.json"
     else:
